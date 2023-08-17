@@ -1,0 +1,181 @@
+import {
+	FormControl,
+	FormErrorMessage,
+	FormHelperText,
+	FormLabel,
+	Input,
+	InputGroup,
+	InputLeftElement,
+	InputRightElement,
+	Textarea,
+	Tooltip,
+} from '@chakra-ui/react';
+import Fraction from 'fraction.js';
+import cloneDeep from 'lodash.clonedeep';
+import { useEffect, useState } from 'react';
+import { Controller } from 'react-hook-form';
+import Select from 'react-select';
+
+import { RightIndicator } from '../Forms/draggableComponent/CustomSelectComponents';
+import { selectStyles } from '../Forms/draggableComponent/selectOptions';
+import HookFormFieldAutoCompleteDynamic from '../Forms/HookFormFieldAutoCompleteDynamic';
+import LineForm from './LineForm';
+
+export default function HashFields({
+	errors,
+	control,
+	fieldData,
+	lineIndex,
+	area,
+}: {
+	errors: any;
+	control: any;
+	fieldData: any;
+	lineIndex: number;
+	area: string;
+}) {
+	const { name, defaultValue, placeholder, label, rules, isDisabled, type } = fieldData;
+	const linesErrors = Object.keys(errors).length !== 0 ? errors[`${area}`] : null;
+	const lineErrors = linesErrors?.[lineIndex];
+	const a = lineErrors?.[name];
+	const [inputValue, setInputValue] = useState('');
+	const handleBlur = (field: any) => {
+		try {
+			const fraction = new Fraction(field.value);
+			const value = fraction.toFraction(true);
+			const newValue = value === '0' ? '' : value;
+			setInputValue(newValue);
+			field.onBlur(newValue);
+			field.onChange(newValue);
+		} catch (error) {
+			console.log(error);
+		}
+	};
+
+	const handleChange = (e: any, field: any) => {
+		const newValue = e.target.value;
+		if (newValue.indexOf('/') !== newValue.lastIndexOf('/')) {
+			return;
+		}
+		if (newValue.indexOf('/') !== -1 && newValue.indexOf(' ') !== -1) {
+			const parts = newValue.split(' ');
+			const lastPart = parts[parts.length - 1];
+			if (lastPart === '') {
+				return;
+			}
+		}
+		if (!/^[0-9\s/.]*$/.test(newValue)) {
+			return;
+		}
+		if (newValue.indexOf('.') !== newValue.lastIndexOf('.')) {
+			return;
+		}
+		if (newValue.indexOf('/') !== -1 && newValue.indexOf('.') !== -1) {
+			return;
+		}
+		if (newValue.indexOf(' ') !== newValue.lastIndexOf(' ')) {
+			return;
+		}
+		if (newValue.indexOf(' ') !== -1 && newValue.indexOf('.') !== -1) {
+			return;
+		}
+		if (newValue.includes('/') && newValue.endsWith('/0')) {
+			return;
+		}
+		setInputValue(newValue);
+	};
+	const FIELDS_TYPES = {
+		numberToDecimal: (
+			<Controller
+				name={`${area}[${lineIndex}].${name}`}
+				control={control}
+				rules={rules}
+				render={({ field }) => {
+					useEffect(() => {
+						handleBlur(field);
+					}, []);
+
+					return (
+						<FormControl
+							isInvalid={a}
+							isRequired={rules.required.value}
+							isDisabled={isDisabled}
+						>
+							<FormLabel
+								overflowWrap='break-word'
+								whiteSpace='nowrap'
+								textOverflow='ellipsis'
+								overflow='clip'
+								_disabled={{ opacity: 0.4 }}
+								htmlFor={`${area}[${lineIndex}].${name}`}
+								fontSize={12}
+								color={'newGray.800'}
+							>
+								{label}
+							</FormLabel>
+							<InputGroup>
+								{fieldData.inputLeftElement && (
+									<InputLeftElement
+										alignSelf='center'
+										pointerEvents='none'
+										fontSize='1rem'
+										top='unset'
+										color='newGray.800'
+									>
+										{fieldData.inputLeftElement}
+									</InputLeftElement>
+								)}
+								<Input
+									type='text'
+									size='sm'
+									h={9}
+									borderRadius={4}
+									_focusVisible={{ borderColor: '#555E92', borderWidth: '1px' }}
+									p='none'
+									colorScheme='purple'
+									borderColor='#D0D2D3'
+									paddingBottom={'2px'}
+									_disabled={{
+										borderColor: '#D0D2D3',
+										background: '#E2E3E3',
+										color: '#9C9EA1',
+									}}
+									placeholder={placeholder}
+									_placeholder={{ fontSize: '12px', color: '#9C9EA1' }}
+									background={'#fff'}
+									fontSize={'12px'}
+									color={'newGray.600'}
+									alignContent={'center'}
+									height={'32px'}
+									alignItems={'center'}
+									step={5}
+									textAlign={'left'}
+									id={`${area}[${lineIndex}].${name}`}
+									{...field}
+									onBlur={() => handleBlur(field)}
+									value={field.value}
+									onChange={(e) => handleChange(e, field)}
+								/>
+								{fieldData.inputRightElement && (
+									<InputRightElement
+										pointerEvents='none'
+										color='gray.500'
+										fontSize='12px'
+										fontWeight={300}
+									>
+										{fieldData.inputRightElement}
+									</InputRightElement>
+								)}
+							</InputGroup>
+							{fieldData.helpText && (
+								<FormHelperText color='#37393C' fontSize={12} mb={-3}>
+									{fieldData.helpText}
+								</FormHelperText>
+							)}
+						</FormControl>
+					);
+				}}
+			/>
+		),
+	return <>{FIELDS_TYPES[type as keyof typeof FIELDS_TYPES]}</>;
+}
